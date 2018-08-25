@@ -1,6 +1,7 @@
-
-services="stopped unlimited 512Kbit 1Mbit 2Mbit 4Mbit"
+services="stopped unlimited 512Kbit 1Mbit 1536Kbit 2Mbit 4Mbit"
 service_config="/etc/shape.conf"
+speed_bg="4Mbit"
+speed_local="40Mbit"
 table="0"
 
 
@@ -8,48 +9,71 @@ ipfw -f flush
 ipfw -f pipe flush
 arp -da
 
+#ipfw add fwd 213.167.0.177 ip from 213.167.0.178 to any
+#ipfw add fwd 213.167.0.137 ip from 213.167.0.138 to any
+#ipfw add fwd 213.167.0.181 ip from 213.167.0.182 to any
 
-ipfw table 100 flush
-for network in `vtysh -c "show ip bgp community 28909:1002" |\
-               cut -f 2 -d " " | grep "^[0-9]" |\
-               sed -e "s/\.0$/\.0\/24/"`; do
-        ipfw table 100 add $network
-done
+#ipfw table 100 flush
+#for network in `vtysh -c "show ip bgp community 28909:32" |\
+#               cut -f 2 -d " " | grep "^[0-9]" |\
+#               sed -e "s/\.0$/\.0\/24/"`; do
+#        ipfw table 100 add $network
+#done
 
-ipfw pipe 100 config bw 4Mbit mask src-ip 0xffffffff
-ipfw pipe 101 config bw 4Mbit mask dst-ip 0xffffffff
-ipfw add pipe 100 ip from any to table\(100\) out via fxp3
-ipfw add pipe 101 ip from table\(100\) to any out via fxp2
+#ipfw pipe 100 config bw $speed_local mask src-ip 0xffffffff
+#ipfw pipe 101 config bw $speed_local mask dst-ip 0xffffffff
+#ipfw add pipe 100 ip from any to table\(100\) out
+#ipfw add pipe 101 ip from table\(100\) to any out
+
+
+#ipfw table 102 flush
+#for network in `vtysh -c "show ip bgp community 28909:359" |\
+#               cut -f 2 -d " " | grep "^[0-9]" |\
+#               sed -e "s/\.0$/\.0\/24/"`; do
+#        ipfw table 102 add $network
+#done
+
+#ipfw pipe 102 config bw $speed_bg mask src-ip 0xffffffff
+#ipfw pipe 103 config bw $speed_bg mask dst-ip 0xffffffff
+#ipfw add pipe 102 ip from any to table\(102\) out
+#ipfw add pipe 103 ip from table\(102\) to any out
+
 
 for service in $services; do
 	table=`expr $table + 2`
 	pipe_in=$table
 	pipe_out=`expr $table + 1`
 
-ipfw -f table $table flush
+	ipfw -f table $table flush
 
-if [ $service = 'stopped' ]; then
-	ipfw add 1 deny ip from any to table\($table\'
-	ipfw add 1 deny ip from table\($table\) to any
+	if [ $service = 'stopped' ]; then
+		ipfw add 1 deny ip from any to table\($table\'
+		ipfw add 1 deny ip from table\($table\) to any
 
-elif [ $service = "unlimited" ]; then
-	ipfw add 90 skipto 65534 all from any to table\($table\)
-	ipfw add 91 skipto 65534 all from table\($table\) to any
+	elif [ $service = "unlimited" ]; then
+		ipfw add 90 skipto 65534 all from any to table\($table\)
+		ipfw add 91 skipto 65534 all from table\($table\) to any
 
-else
-	ipfw pipe $pipe_in config bw $service mask dst-ip 0xffffffff
-	ipfw add pipe $pipe_in ip from any to table\($table\) out
-	ipfw pipe $pipe_out config bw $service mask src-ip 0xffffffff
-	ipfw add pipe $pipe_out ip from table\($table\) to any out
+	else
+#		ipfw pipe $pipe_in config bw $service mask dst-ip 0xffffffff
+		ipfw pipe $pipe_in config bw 24Mbit mask dst-ip 0xffffffff
+		ipfw add pipe $pipe_in ip from any to table\($table\) out
+#		ipfw pipe $pipe_out config bw $service mask src-ip 0xffffffff
+		ipfw pipe $pipe_out config bw 24Mbit mask src-ip 0xffffffff
+		ipfw add pipe $pipe_out ip from table\($table\) to any out
 
-fi
+	fi
 	grep $service $service_config 2>/dev/null | \
 	while read line; do
 		set -- $line
 		if [ "$1" ]; then
 			client_ip=$1
 			ipfw table $table add $client_ip
-			if [ service = 'stopped' ]; then
+			echo -e "IP address "$client_ip" added to table "$table" and service is "$service
+			if [ "$3" ]; then
+				arp -s $client_ip $3 pub
+			fi
+			if [ $service = 'stopped' ]; then
 				arp -s $client_ip 00:00:00:00:00:00 pub
 			fi
 		fi
