@@ -1,0 +1,39 @@
+#!/bin/sh
+
+if [ "$1" = "apply" ]; then
+   /etc/rc.shape
+   exit 0
+fi
+
+ipaddress=$1
+service=$2
+service_config="/etc/shape.conf"
+services="stopped unlimited 512Kbit 1Mbit 2Mbit 4Mbit"
+
+if [ -z $ipaddress ]; then
+   cat $service_config
+   exit 0
+fi
+
+check=`grep "^$ipaddress	" $service_config`
+
+if [ -z "$check" ]; then
+   echo -e "There is no such IP address \"$ipaddress\"\n"
+   exit 0
+fi
+
+if [ -z "$service" ]; then
+   echo $check
+   exit 0
+fi
+
+for valid_service in $services; do
+ if [ "$valid_service" = "$service" ]; then
+   cat $service_config |\
+   sed -e "s/^$ipaddress.*/$ipaddress	$service/" > /tmp/shape.conf.$$
+   mv /tmp/shape.conf.$$ /etc/shape.conf
+   exit 0
+ fi
+done
+
+echo -e "There is no such service \"$service\"\n\nThe valid services are:\n$services\n"
