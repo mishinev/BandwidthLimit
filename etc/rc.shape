@@ -56,10 +56,10 @@ for service in $services; do
 
 	else
 #		ipfw pipe $pipe_in config bw $service mask dst-ip 0xffffffff
-		ipfw pipe $pipe_in config bw 24Mbit mask dst-ip 0xffffffff
+		ipfw pipe $pipe_in config bw 40Mbit mask dst-ip 0xffffffff
 		ipfw add pipe $pipe_in ip from any to table\($table\) out
 #		ipfw pipe $pipe_out config bw $service mask src-ip 0xffffffff
-		ipfw pipe $pipe_out config bw 24Mbit mask src-ip 0xffffffff
+		ipfw pipe $pipe_out config bw 40Mbit mask src-ip 0xffffffff
 		ipfw add pipe $pipe_out ip from table\($table\) to any out
 
 	fi
