@@ -4,7 +4,7 @@ ipaddress=$1
 service=$2
 macaddress=$3
 service_config="/etc/shape.conf"
-services="stopped unlimited 512Kbit 1Mbit 1536Kbit 2Mbit 4Mbit"
+services="stopped unlimited 50Mbit"
 
 if [ "$1" = "apply" ]; then
    /etc/rc.shape

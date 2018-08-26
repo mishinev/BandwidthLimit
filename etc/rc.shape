@@ -1,43 +1,11 @@
-services="stopped unlimited 512Kbit 1Mbit 1536Kbit 2Mbit 4Mbit"
+services="stopped unlimited 50Mbit"
 service_config="/etc/shape.conf"
-speed_bg="4Mbit"
-speed_local="40Mbit"
 table="0"
 
 
 ipfw -f flush
 ipfw -f pipe flush
 arp -da
-
-#ipfw add fwd 213.167.0.177 ip from 213.167.0.178 to any
-#ipfw add fwd 213.167.0.137 ip from 213.167.0.138 to any
-#ipfw add fwd 213.167.0.181 ip from 213.167.0.182 to any
-
-#ipfw table 100 flush
-#for network in `vtysh -c "show ip bgp community 28909:32" |\
-#               cut -f 2 -d " " | grep "^[0-9]" |\
-#               sed -e "s/\.0$/\.0\/24/"`; do
-#        ipfw table 100 add $network
-#done
-
-#ipfw pipe 100 config bw $speed_local mask src-ip 0xffffffff
-#ipfw pipe 101 config bw $speed_local mask dst-ip 0xffffffff
-#ipfw add pipe 100 ip from any to table\(100\) out
-#ipfw add pipe 101 ip from table\(100\) to any out
-
-
-#ipfw table 102 flush
-#for network in `vtysh -c "show ip bgp community 28909:359" |\
-#               cut -f 2 -d " " | grep "^[0-9]" |\
-#               sed -e "s/\.0$/\.0\/24/"`; do
-#        ipfw table 102 add $network
-#done
-
-#ipfw pipe 102 config bw $speed_bg mask src-ip 0xffffffff
-#ipfw pipe 103 config bw $speed_bg mask dst-ip 0xffffffff
-#ipfw add pipe 102 ip from any to table\(102\) out
-#ipfw add pipe 103 ip from table\(102\) to any out
-
 
 for service in $services; do
 	table=`expr $table + 2`
@@ -55,11 +23,9 @@ for service in $services; do
 		ipfw add 91 skipto 65534 all from table\($table\) to any
 
 	else
-#		ipfw pipe $pipe_in config bw $service mask dst-ip 0xffffffff
-		ipfw pipe $pipe_in config bw 40Mbit mask dst-ip 0xffffffff
+		ipfw pipe $pipe_in config bw $service mask dst-ip 0xffffffff
 		ipfw add pipe $pipe_in ip from any to table\($table\) out
-#		ipfw pipe $pipe_out config bw $service mask src-ip 0xffffffff
-		ipfw pipe $pipe_out config bw 40Mbit mask src-ip 0xffffffff
+		ipfw pipe $pipe_out config bw $service mask src-ip 0xffffffff
 		ipfw add pipe $pipe_out ip from table\($table\) to any out
 
 	fi
